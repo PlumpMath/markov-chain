@@ -1,19 +1,7 @@
-(ns markov-chain.core)
+(ns markov-chain.core
+  (:require [clojure.data.generators :as random]))
 
 (defn- prefix [order] (vec (repeat order nil)))
-
-;; TODO replace with external lib
-(defn- weighted-choice
-  "given a map of key: weight, randomly select a key using the appropriate weightings"
-  ([key-weights]
-   (let [total (reduce + (vals key-weights))
-         choice (rand-int total)
-         orderings (vec (map vec key-weights))]
-     (loop [[[key weight] & xs] orderings
-            remaining choice]
-       (if (< remaining weight) key
-                                (recur xs (- remaining weight)))))))
-
 
 (defn- update-chain [order memo group]
   "update the count of the next state for the current state"
@@ -50,8 +38,8 @@
   ([order seed input-multichain]
    (loop [output []
           key seed]
-     (let [input-chain (first (filter #(get % key) input-multichain)) ; account for unseen patterns
-           next (weighted-choice (get input-chain key))
+     (let [input-chain (last (filter #(get % key) input-multichain)) ; account for unseen patterns
+           next (random/weighted (get input-chain key))
            new-output (conj output next)
            new-key (if (> order 0) (take-last order new-output) '())]
        (if (nil? next) output (recur new-output new-key)))))

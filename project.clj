@@ -3,5 +3,6 @@
   :url "https://github.com/cmaher/markov-chain"
   :license {:name "MIT"
             :url "http://opensource.org/licenses/MIT"}
-  :dependencies [[org.clojure/clojure "1.6.0"]]
+  :dependencies [[org.clojure/clojure "1.6.0"]
+                 [org.clojure/data.generators "0.1.2"]]
   :profiles {:dev {}})
