@@ -1,11 +1,19 @@
 (ns markov-chain.core
   (:require [clojure.data.generators :as random]))
 
+(def ^:dynamic ^:java.util.Random *rnd* random/*rnd*)
+
+(defn- weighted
+  "Delegate to data.generators with a bound *rnd*"
+  [m]
+  (binding [random/*rnd* *rnd*]
+    (random/weighted m)))
+
 (defn- prefix [order] (vec (repeat order nil)))
 
 (defn- update-chain [order memo group]
   "update the count of the next state for the current state"
-  (let [key (take order group)
+  (let [key (seq (take order group))
         next-key (last group)
         current-state (get memo key {})
         current-value (get current-state next-key 0)]
@@ -14,7 +22,7 @@
 (defn- extend-chain
   "process a single seq from the input"
   [order chain input]
-  (let [suffixed (if (> order 0) (conj input nil) input)
+  (let [suffixed (conj input nil)
         bookended (into (prefix order) suffixed)
         group-size (inc order)
         grouped (partition group-size 1 bookended)]
@@ -33,14 +41,23 @@
   (reduce (fn [memo o] (conj memo (chain o input)))
           [] (range 0 (inc order))))
 
+(defn- next-valid-sample
+  [in-key input-multichain]
+  (let [all-keys (map #(take-last % in-key) (range 0 (inc (count in-key))))
+        key-chain (map vector all-keys input-multichain)
+        valid-key-chain? (fn [[k c]] (get c k))
+        [next-key next-chain] (last (filter valid-key-chain? key-chain))]
+    (weighted (get next-chain next-key))))
+
 (defn sample
-  "use a multichain to generate sample output"
-  ([order seed input-multichain]
+  "use a multichain to generate sample output.
+  Will use a lower-level chain as a fallback if a given pattern isn't found"
+  ([order input-multichain seed]
    (loop [output []
           key seed]
-     (let [input-chain (last (filter #(get % key) input-multichain)) ; account for unseen patterns
-           next (random/weighted (get input-chain key))
+     (let [next (next-valid-sample key input-multichain)
            new-output (conj output next)
-           new-key (if (> order 0) (take-last order new-output) '())]
+           new-key (take-last order new-output)]
        (if (nil? next) output (recur new-output new-key)))))
-  ([order input-chain] (sample order (prefix order) input-chain)))
+  ([order input-chain]
+   (sample order input-chain (prefix order))))

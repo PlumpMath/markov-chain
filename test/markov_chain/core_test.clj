@@ -1,7 +1,10 @@
 (ns markov-chain.core-test
   (:require [clojure.test :refer :all]
             [markov-chain.core :refer :all]
-            [markov-chain.test-utils :refer :all]))
+            [markov-chain.strings :refer :all]
+            [markov-chain.test-utils :refer :all]
+            [clojure.string :as string])
+  (:import (java.util Random)))
 
 (deftest chain-test
   (testing "chain with one sequence"
@@ -23,3 +26,10 @@
   (testing "2-chain, one sequence"
     (is (= [(chain 0 babel-vec) (chain 1 babel-vec) (chain 2 babel-vec)]
            (multichain 2 babel-vec)))))
+
+(deftest sample-test
+  (testing "sampling multichains"
+    (binding [*rnd* (Random. 42)]
+      (let [model (multichain-words 2 lorem-ipsum)
+            samples (repeatedly #(sample 2 model))]
+        (is (= (w% riscit exerunt ad strunt eur) (mapv string/join (take 5 samples))))))))
